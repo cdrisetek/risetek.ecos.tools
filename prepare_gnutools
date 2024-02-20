@@ -1,0 +1,48 @@
+#!/bin/bash
+set -e
+
+GNU_WORKSPACE=${GNU_WORKSPACE:-$(pwd)}
+BINUTILS_VERSION=${BINUTILS_VERSION:-2.38}
+GCC_VERSION=${GCC_VERSION:-11.4.0}
+NEWLIB_VERSION=${NEWLIB_VERSION:-2.4.0}
+echo Workspace is $GNU_WORKSPACE, Binutils version is $BINUTILS_VERSION, GCC version is $GCC_VERSION, Newlib version is $NEWLIB_VERSION
+
+# Location of the packages to build
+## GNU_URL=mirrors.aliyun.com
+## GNU_URL=mirrors.tuna.tsinghua.edu.cn
+
+GNU_URL=${GNU_URL:-ftpmirror.gnu.org}
+
+BINUTILS_PKG=http://$GNU_URL/gnu/binutils/binutils-$BINUTILS_VERSION.tar.gz
+GCC_PKG=http://$GNU_URL/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.gz
+NEWLIB_PKG=ftp://sourceware.org/pub/newlib/newlib-$NEWLIB_VERSION.tar.gz
+## NEWLIB_PKG=https://$GNU_URL/sourceware/newlib/newlib-$NEWLIB_VERSION.tar.gz
+
+pushd $GNU_WORKSPACE
+
+echo "Downloading GNU Binutils..."
+wget $BINUTILS_PKG || { echo "Aborting due to errors"; exit 1; }
+
+echo "Downloading GNU GCC..."
+wget $GCC_PKG || { echo "Aborting due to errors"; exit 1; }
+tar -xf gcc-$GCC_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
+
+echo "Downloading aditional dependencies..."
+pushd gcc-$GCC_VERSION
+    contrib/download_prerequisites || { echo "Aborting due to errors"; exit 1; }
+popd
+
+echo "Downloading and install NEWLIB..."
+wget --no-check-certificate $NEWLIB_PKG || { echo "Aborting due to errors"; exit 1; }
+tar -xf newlib-$NEWLIB_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
+mv newlib-$NEWLIB_VERSION/newlib gcc-$GCC_VERSION/ || { echo "Aborting due to errors"; exit 1; }
+mv newlib-$NEWLIB_VERSION/libgloss gcc-$GCC_VERSION/ || { echo "Aborting due to errors"; exit 1; }
+
+echo "Packing GNU GCC..."
+tar -cf gcc-$GCC_VERSION.tar.gz gcc-$GCC_VERSION || { echo "Aborting due to errors"; exit 1; }
+
+echo "Clean Up..."
+rm -rf gcc-$GCC_VERSION newlib-$NEWLIB_VERSION newlib-$NEWLIB_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
+
+popd
+

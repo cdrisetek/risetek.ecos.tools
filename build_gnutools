@@ -1,0 +1,67 @@
+#!/bin/bash
+set -e
+
+GNU_WORKSPACE=${GNU_WORKSPACE:-$(pwd)}
+BINUTILS_VERSION=${BINUTILS_VERSION:-2.38}
+GCC_VERSION=${GCC_VERSION:-11.4.0}
+NEWLIB_VERSION=${NEWLIB_VERSION:-2.4.0}
+TARGET=${TARGET:-i386-elf}
+PREFIX=${PREFIX:-$(pwd)/gnutools}
+
+echo Workspace is $GNU_WORKSPACE, Binutils version is $BINUTILS_VERSION, GCC version is $GCC_VERSION, Newlib version is $NEWLIB_VERSION
+echo Target is $TARGET, PREFIX is $PREFIX
+
+sudo apt-get install -y texinfo
+
+pushd $GNU_WORKSPACE
+echo "Unpacking GNU Binutils..."
+tar -xf binutils-$BINUTILS_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
+
+mkdir binutils-build && pushd binutils-build
+    echo "Configuring GNU Binutils..."
+    ../binutils-$BINUTILS_VERSION/configure --prefix=$PREFIX \
+        --target=$TARGET --disable-nls --with-sysroot \
+        --disable-werror || { echo "Aborting due to errors"; exit 1; }
+    echo "Building GNU Binutils..."
+    make configure-host || { echo "Aborting due to errors"; exit 1; }
+    make LDFLAGS="-all-static" -j$(nproc) || { echo "Aborting due to errors"; exit 1; }
+    echo "Installing GNU Binutils..."
+    make install-strip || { echo "Aborting due to errors"; exit 1; }
+popd # binutils-build
+
+
+echo "Unpacking GNU GCC..."
+tar -xf gcc-$GCC_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
+
+mkdir gcc-build && pushd gcc-build
+    echo "Configuring GNU GCC..."
+    ../gcc-$GCC_VERSION/configure --prefix=$PREFIX \
+        --target=$TARGET --disable-nls \
+        --disable-multilib --disable-werror \
+        --with-gnu-as --with-gnu-ld --with-newlib \
+        --with-gxx-include-dir=$PREFIX/$TARGET/include \
+        --enable-languages=c,c++ || { echo "Aborting due to errors"; exit 1; }
+
+    echo "Building GNU GCC..."
+    make LDFLAGS="-static" -j$(nproc) all-gcc >/dev/null 2>&1 || { echo "Aborting due to errors"; exit 1; }
+    echo "Installing GNU GCC..."
+    make install-strip-gcc || { echo "Aborting due to errors"; exit 1; }
+
+    echo "Building GNU libgcc..."
+    make -j$(nproc) all-target-libgcc >/dev/null 2>&1 || { echo "Aborting due to errors"; exit 1; }
+    echo "Installing GNU libgcc..."
+    make install-strip-target-libgcc || { echo "Aborting due to errors"; exit 1; }
+
+    echo "Building GNU newlib..."
+    make -j$(nproc) all-target-newlib >/dev/null 2>&1 || { echo "Aborting due to errors"; exit 1; }
+    echo "Installing GNU libgcc..."
+    make install-strip-target-newlib || { echo "Aborting due to errors"; exit 1; }
+
+    echo "Building GNU libstdc++-v3..."
+    make -j$(nproc) all-target-libstdc++-v3 >/dev/null 2>&1 || { echo "Aborting due to errors"; exit 1; }
+    echo "Installing GNU libgstdc++-v3..."
+    make install-strip-target-libstdc++-v3 || { echo "Aborting due to errors"; exit 1; }
+popd # gcc-build
+
+popd # $GNU_WORKSPACE
+

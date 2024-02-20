@@ -1,0 +1,93 @@
+name: eCos Tool Chain build
+
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      target:
+        # Friendly description to be shown in the UI instead of 'name'
+        description: 'Gnu tools target'
+        # Default value if no value is explicitly provided
+        default: 'i386-elf'
+        # Input has to be provided for the workflow to run
+        required: true
+      host-version:
+        description: 'Host version'
+        default: "ubuntu-22.04"
+        required: true
+      binutils-version:
+        description: 'Gnu binutils version'
+        # avaiable 2.38
+        default: "2.41"
+        required: true
+      gcc-version:
+        description: 'Gnu gcc version'
+        default: "11.4.0"
+        required: true
+      newlib-version:
+        description: 'Gnu newlib version'
+        # available 2.4.0
+        default: "4.1.0"
+        required: true
+
+env:
+    ARTIFACTS: ${{github.workspace}}/targets/artifacts
+
+jobs:
+  BuildTools:
+    runs-on: ${{github.event.inputs.host-version}}
+
+    steps:
+    - name: Install required packages
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo apt-get update -qq 1>/dev/null && sudo apt-get install -y -qq gcc g++ tcl-dev tk-dev 1>/dev/null
+
+    # Checks-out repository under $GITHUB_WORKSPACE, so your job can access it
+    - name: Checkout this repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
+    - name: Build ecosconfig tools
+      id: ecosconfig
+      run: |
+        ./build_ecosconfig
+        # packing ecosconfig tool
+        mkdir -p $ARTIFACTS && mv ecosconfig $ARTIFACTS
+
+    - name: Download and Build GNU toolchain packages
+      id: gnutoolchain
+      env:
+        BINUTILS_VERSION: ${{github.event.inputs.binutils-version}}
+        GCC_VERSION: ${{github.event.inputs.gcc-version}}
+        NEWLIB_VERSION: ${{github.event.inputs.newlib-version}}
+        GNU_WORKSPACE: ${{github.workspace}}
+        TARGET: ${{github.event.inputs.target}}
+        PREFIX: ${{github.workspace}}/gnutools/${{github.event.inputs.target}}
+      run: |
+        # Download GNU Tool Chain sources files.
+        ./prepare_gnutools >/dev/null 2>&1
+
+        # Build from GNU Tool Chain sources files.
+        ./build_gnutools >/dev/null 2>&1
+
+        # packing gnutools
+        mkdir -p $ARTIFACTS && cp -R $PREFIX $ARTIFACTS
+
+    - name: Pack gnutools
+      run: |
+        cd $ARTIFACTS && tar zcf ${{github.workspace}}/ecostools.tgz *
+  
+    - name: Collect artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: eCos-toolchain-artifacts ${{github.event.inputs.target}}
+        path: ${{github.workspace}}/ecostools.tgz
+
+    - name: Clean workflow runs
+      uses: GitRML/delete-workflow-runs@main
+      with:
+        retain_days: 1
+        keep_minimum_runs: 3
