@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+GNU_WORKSPACE=${GNU_WORKSPACE:-$(pwd)}
+GDB_VERSION=${GDB_VERSION:-14.2}
+TARGET=${TARGET:-i386-elf}
+PREFIX=${PREFIX:-$(pwd)/gnutools}
+
+echo Workspace is $GNU_WORKSPACE, GDB version is $GDB_VERSION
+echo Target is $TARGET, PREFIX is $PREFIX
+
+sudo apt-get install -y texinfo libgmp-dev libmpfr-dev
+
+pushd $GNU_WORKSPACE
+echo "Download GDB...."
+[ -f gdb-${GDB_VERSION}.tar.gz ] || wget https://ftp.gnu.org/gnu/gdb/gdb-${GDB_VERSION}.tar.gz
+tar -xvzf gdb-${GDB_VERSION}.tar.gz
+
+rm -rf gdb-build && mkdir gdb-build && pushd gdb-build
+    echo "Configuring GNU GDB..."
+    ../gdb-$GDB_VERSION/configure --prefix=$PREFIX \
+        --target=$TARGET || { echo "Aborting due to errors"; exit 1; }
+popd
+
+popd # $GNU_WORKSPACE
+
