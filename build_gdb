@@ -18,7 +18,7 @@ tar -xvzf gdb-${GDB_VERSION}.tar.gz
 
 rm -rf gdb-build && mkdir gdb-build && pushd gdb-build
     echo "Configuring GNU GDB..."
-    ../gdb-$GDB_VERSION/configure --prefix=$PREFIX \
+    ../gdb-$GDB_VERSION/configure --prefix=$PREFIX --with-expat \
         --target=$TARGET || { echo "Aborting due to errors"; exit 1; }
 popd
 

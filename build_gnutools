@@ -19,7 +19,7 @@ tar -xf binutils-$BINUTILS_VERSION.tar.gz || { echo "Aborting due to errors"; ex
 
 mkdir binutils-build && pushd binutils-build
     echo "Configuring GNU Binutils..."
-    ../binutils-$BINUTILS_VERSION/configure --prefix=$PREFIX \
+    ../binutils-$BINUTILS_VERSION/configure --prefix=$PREFIX/$TARGET \
         --target=$TARGET --disable-nls --with-sysroot \
         --disable-werror || { echo "Aborting due to errors"; exit 1; }
     echo "Building GNU Binutils..."
@@ -35,15 +35,16 @@ tar -xf gcc-$GCC_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
 
 mkdir gcc-build && pushd gcc-build
     echo "Configuring GNU GCC..."
-    ../gcc-$GCC_VERSION/configure --prefix=$PREFIX \
+    ../gcc-$GCC_VERSION/configure --prefix=$PREFIX/$TARGET \
         --target=$TARGET --disable-nls \
         --disable-multilib --disable-werror \
         --with-gnu-as --with-gnu-ld --with-newlib \
-        --with-gxx-include-dir=$PREFIX/$TARGET/include \
+        --disable-__cxa_atexit \
+        --enable-threads \
         --enable-languages=c,c++ || { echo "Aborting due to errors"; exit 1; }
 
     echo "Building GNU GCC..."
-    make LDFLAGS="-static" -j$(nproc) all-gcc >/dev/null 2>&1 || { echo "Aborting due to errors"; exit 1; }
+    make -j$(nproc) LDFLAGS="-static" all-gcc >/dev/null 2>&1 || { echo "Aborting due to errors"; exit 1; }
     echo "Installing GNU GCC..."
     make install-strip-gcc || { echo "Aborting due to errors"; exit 1; }
 
