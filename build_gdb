@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -v +e
 
 GNU_WORKSPACE=${GNU_WORKSPACE:-$(pwd)}
 GDB_VERSION=${GDB_VERSION:-14.2}
@@ -20,7 +20,10 @@ rm -rf gdb-build && mkdir gdb-build && pushd gdb-build
     echo "Configuring GNU GDB..."
     ../gdb-$GDB_VERSION/configure --prefix=$PREFIX --with-expat \
         --target=$TARGET || { echo "Aborting due to errors"; exit 1; }
+make
+make install-strip
 popd
 
 popd # $GNU_WORKSPACE
 
+set +v
