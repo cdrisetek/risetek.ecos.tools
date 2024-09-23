@@ -1,0 +1,60 @@
+name: eCos Tool Chain Test Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  BuildTools:
+    strategy:
+      matrix:
+        host-version: ["ubuntu-24.04"]
+        target: ["i386-elf", "arm-eabi"]
+        binutils-version: ["2.38", "2.41"]
+        gcc-version: ["10.3.0", "11.4.0"]
+        newlib-version: ["3.3.0", "4.1.0"]
+      fail-fast: false
+
+    runs-on: ${{ matrix.host-version }}
+
+    steps:
+    - name: Install required packages
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo apt-get update -qq 1>/dev/null && sudo apt-get install -y -qq gcc g++ 1>/dev/null
+
+    - name: Checkout this repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
+    - name: Download and Build GNU toolchain packages
+      id: gnutoolchain
+      env:
+        BINUTILS_VERSION: ${{ matrix.binutils-version }}
+        GCC_VERSION: ${{ matrix.gcc-version }}
+        NEWLIB_VERSION: ${{ matrix.newlib-version }}
+        GNU_WORKSPACE: ${{github.workspace}}
+        TARGET: ${{ matrix.target }}
+        PREFIX: ${{github.workspace}}/gnutools/${{ matrix.target }}
+        ARTIFACTS: ${{github.workspace}}/targets/artifacts
+      run: |
+        ./prepare_gnutools
+        ./build_gnutools
+        mkdir -p $ARTIFACTS && cp -R $PREFIX $ARTIFACTS
+
+    - name: Pack gnutools
+      run: |
+        cd $ARTIFACTS && tar zcf ${{github.workspace}}/ecostools-${{ matrix.target }}.tgz *
+
+    - name: Collect artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: eCos-toolchain-${{ matrix.host-version }}-${{ matrix.target }}-binutils${{ matrix.binutils-version }}-gcc${{ matrix.gcc-version }}-newlib${{ matrix.newlib-version }}
+        path: ${{github.workspace}}/ecostools-${{ matrix.target }}.tgz
+
+    - name: Clean workflow runs
+      uses: GitRML/delete-workflow-runs@main
+      with:
+        retain_days: 1
+        keep_minimum_runs: 3

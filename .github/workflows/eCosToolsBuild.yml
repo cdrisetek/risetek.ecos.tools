@@ -4,16 +4,14 @@ on:
   workflow_dispatch:
     # Inputs the workflow accepts.
     inputs:
-      target:
-        # Friendly description to be shown in the UI instead of 'name'
-        description: 'Gnu tools target'
-        # Default value if no value is explicitly provided
-        default: 'i386-elf'
-        # Input has to be provided for the workflow to run
+      targets:
+        description: 'Target architectures (comma-separated)'
+        default: "i386-elf,i686-elf"
+        ## arm-eabi mips-elf etc.
         required: true
       host-version:
         description: 'Host version'
-        default: "ubuntu-22.04"
+        default: "ubuntu-24.04"
         required: true
       binutils-version:
         description: 'Gnu binutils version'
@@ -36,6 +34,9 @@ env:
 jobs:
   BuildTools:
     runs-on: ${{github.event.inputs.host-version}}
+    strategy:
+      matrix:
+        target: ${{ fromJson(format('[{0}]', join(github.event.inputs.targets, ','))) }}
 
     steps:
     - name: Install required packages
@@ -64,8 +65,8 @@ jobs:
         GCC_VERSION: ${{github.event.inputs.gcc-version}}
         NEWLIB_VERSION: ${{github.event.inputs.newlib-version}}
         GNU_WORKSPACE: ${{github.workspace}}
-        TARGET: ${{github.event.inputs.target}}
-        PREFIX: ${{github.workspace}}/gnutools/${{github.event.inputs.target}}
+        TARGET: ${{ matrix.target }}
+        PREFIX: ${{github.workspace}}/gnutools/${{ matrix.target }}
       run: |
         # Download GNU Tool Chain sources files.
         ./prepare_gnutools >/dev/null 2>&1
@@ -78,13 +79,13 @@ jobs:
 
     - name: Pack gnutools
       run: |
-        cd $ARTIFACTS && tar zcf ${{github.workspace}}/ecostools.tgz *
-  
+        cd $ARTIFACTS && tar zcf ${{github.workspace}}/ecostools-${{ matrix.target }}.tgz *
+
     - name: Collect artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: eCos-toolchain-artifacts ${{github.event.inputs.target}}
-        path: ${{github.workspace}}/ecostools.tgz
+        name: eCos-toolchain-artifacts-${{ matrix.target }}
+        path: ${{github.workspace}}/ecostools-${{ matrix.target }}.tgz
 
     - name: Clean workflow runs
       uses: GitRML/delete-workflow-runs@main
