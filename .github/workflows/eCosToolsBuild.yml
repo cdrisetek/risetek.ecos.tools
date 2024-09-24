@@ -6,7 +6,7 @@ on:
     inputs:
       targets:
         description: 'Target architectures (comma-separated)'
-        default: ["i386-elf", "arm-eabi"]
+        default: "i386-elf, arm-eabi"
         ## arm-eabi mips-elf etc.
         required: true
       host-version:
