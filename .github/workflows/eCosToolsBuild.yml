@@ -36,7 +36,7 @@ jobs:
     runs-on: ${{github.event.inputs.host-version}}
     strategy:
       matrix:
-        target: ${{ fromJson(format('[{0}]', join(github.event.inputs.targets, ','))) }}
+        target: ${{ fromJson('["' + join(split(github.event.inputs.targets, ','), '","') + '"]') }}
 
     steps:
     - name: Install required packages
