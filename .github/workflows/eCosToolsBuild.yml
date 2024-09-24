@@ -6,7 +6,7 @@ on:
     inputs:
       targets:
         description: 'Target architectures (comma-separated)'
-        default: "i386-elf,i686-elf"
+        default: "i386-elf,x86_64-elf"
         ## arm-eabi mips-elf etc.
         required: true
       host-version:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ${{github.event.inputs.host-version}}
     strategy:
       matrix:
-        target: ${{ fromJson('["' + join(split(github.event.inputs.targets, ','), '","') + '"]') }}
+        target: ${{ fromJson(toJson(github.event.inputs.targets)) }}
 
     steps:
     - name: Install required packages
