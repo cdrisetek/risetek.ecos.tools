@@ -17,7 +17,7 @@ pushd $GNU_WORKSPACE
 echo "Unpacking GNU Binutils..."
 tar -xf binutils-$BINUTILS_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
 
-mkdir binutils-build && pushd binutils-build
+rm -rf binutils-build && mkdir binutils-build && pushd binutils-build
     echo "Configuring GNU Binutils..."
     ../binutils-$BINUTILS_VERSION/configure --prefix=$PREFIX/$TARGET \
         --target=$TARGET --disable-nls --with-sysroot \
@@ -33,7 +33,7 @@ popd # binutils-build
 echo "Unpacking GNU GCC..."
 tar -xf gcc-$GCC_VERSION.tar.gz || { echo "Aborting due to errors"; exit 1; }
 
-mkdir gcc-build && pushd gcc-build
+rm -rf gcc-build && mkdir gcc-build && pushd gcc-build
     echo "Configuring GNU GCC..."
     ../gcc-$GCC_VERSION/configure --prefix=$PREFIX/$TARGET \
         --target=$TARGET --disable-nls \
@@ -41,6 +41,7 @@ mkdir gcc-build && pushd gcc-build
         --with-gnu-as --with-gnu-ld --with-newlib \
         --disable-__cxa_atexit \
         --enable-threads \
+        --without-headers \
         --enable-languages=c,c++ || { echo "Aborting due to errors"; exit 1; }
 
     echo "Building GNU GCC..."

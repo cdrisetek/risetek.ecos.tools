@@ -10,7 +10,7 @@ jobs:
         host-version: ["ubuntu-24.04"]
         target: ["i386-elf", "arm-eabi"]
         binutils-version: ["2.38", "2.41"]
-        gcc-version: ["10.3.0", "11.4.0"]
+        gcc-version: ["10.3.0", "11.4.0", "13.2.0"]
         newlib-version: ["3.3.0", "4.1.0"]
       fail-fast: false
 
@@ -45,7 +45,7 @@ jobs:
 
     - name: Pack gnutools
       run: |
-        cd $ARTIFACTS && tar zcf ${{github.workspace}}/ecostools-${{ matrix.target }}.tgz *
+        cd $ARTIFACTS && tar zcf ${{github.workspace}}/ecostools-${{ matrix.host-version }}-${{ matrix.target }}-${{matrix.gcc-version}}-${{matrix.binutils-version}}-${{matrix.newlib-version}}.tgz *
 
     - name: Collect artifacts
       uses: actions/upload-artifact@v3
